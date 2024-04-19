@@ -5,6 +5,7 @@ import (
 )
 
 type Condition[C any] func(C) bool
+
 type Action[C any, M comparable] func(ctx *C, message M)
 
 type Decision[C any, M comparable] struct {
@@ -18,8 +19,12 @@ type Stago[C any, S, M comparable] struct {
 
 	decisions  map[S][]Decision[C, M]
 	conditions map[S]Condition[C]
-	actions    map[M][]Action[C, M]
+	actions    map[S]Action[C, M]
 	fallbacks  map[S]Action[C, M]
+
+	// Helpers
+	ALWAYS Condition[C]
+	NEVER  Condition[C]
 }
 
 func New[C any, S, M comparable](ctx C, state S) *Stago[C, S, M] {
@@ -28,8 +33,11 @@ func New[C any, S, M comparable](ctx C, state S) *Stago[C, S, M] {
 		fsm:        fsm.New(state, fsm.TT[S, M]{}),
 		decisions:  make(map[S][]Decision[C, M]),
 		conditions: make(map[S]Condition[C]),
-		actions:    make(map[M][]Action[C, M]),
+		actions:    make(map[S]Action[C, M]),
 		fallbacks:  make(map[S]Action[C, M]),
+
+		ALWAYS: func(_ C) bool { return true },
+		NEVER:  func(_ C) bool { return false },
 	}
 
 	return s
@@ -39,6 +47,7 @@ type State[C any, S, M comparable] struct {
 	Transition func(message M, next S)
 	Condition  func(condition Condition[C])
 	Decision   func(cond Condition[C], action Action[C, M])
+	Action     func(action Action[C, M])
 	Fallback   func(action Action[C, M])
 }
 
@@ -47,16 +56,16 @@ func (d *Stago[C, S, M]) AddDecision(state S, decision Decision[C, M]) {
 	d.decisions[state] = append(decisions, decision)
 }
 
+func (d *Stago[C, S, M]) AddAction(state S, action Action[C, M]) {
+	d.actions[state] = action
+}
+
 func (d *Stago[C, S, M]) AddFallback(state S, fallback Action[C, M]) {
 	d.fallbacks[state] = fallback
 }
 
 func (d *Stago[C, S, M]) AddCondition(state S, condition Condition[C]) {
 	d.conditions[state] = condition
-}
-
-func (d *Stago[C, S, M]) AddAction(message M, action Action[C, M]) {
-	d.actions[message] = append(d.actions[message], action)
 }
 
 func (d *Stago[C, S, M]) NewState(state S) State[C, S, M] {
@@ -75,6 +84,11 @@ func (d *Stago[C, S, M]) NewState(state S) State[C, S, M] {
 
 			d.AddDecision(state, decision)
 		},
+
+		Action: func(action Action[C, M]) {
+			d.AddAction(state, action)
+		},
+
 		Fallback: func(fallback Action[C, M]) {
 			d.AddFallback(state, fallback)
 		},
@@ -92,17 +106,15 @@ func (d *Stago[C, S, M]) Context() C {
 func (d *Stago[C, S, M]) Forward(message M) bool {
 	var (
 		state                       = d.State()
-		actions, actions_exists     = d.actions[message]
+		action, action_exists       = d.actions[state]
 		condition, condition_exists = d.conditions[state]
 		decisions, decisions_exists = d.decisions[state]
 		fallback, fallback_exists   = d.fallbacks[state]
 	)
 
-	if actions_exists {
-		// Perform global actions
-		for _, action := range actions {
-			action(&d.context, message)
-		}
+	if action_exists {
+		// Perform actions
+		action(&d.context, message)
 	}
 
 	if decisions_exists {

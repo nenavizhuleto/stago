@@ -34,25 +34,35 @@ type TurnstileMessage struct {
 func main() {
 	s := stago.New[Turnstile, State, Message](Turnstile{}, LOCKED)
 
-	s.AddAction(COIN, func(ctx *Turnstile, message Message) {
-		ctx.Count++
-		log.Println(s.State(), ctx, message)
-	})
-
-	s.AddAction(PUSH, func(ctx *Turnstile, message Message) {
-		if ctx.Count > 0 {
-			ctx.Count--
-		}
-		log.Println(s.State(), ctx, message)
-	})
-
 	locked := s.NewState(LOCKED)
 	locked.Transition(PUSH, LOCKED)
+	locked.Action(func(ctx *Turnstile, message Message) {
+		switch message {
+		case COIN:
+			ctx.Count++
+		case PUSH:
+			if ctx.Count > 0 {
+				ctx.Count--
+			}
+		}
+
+	})
 	locked.Transition(COIN, UNLOCKED)
 
 	unlocked := s.NewState(UNLOCKED)
 	unlocked.Transition(PUSH, LOCKED)
 	unlocked.Transition(COIN, UNLOCKED)
+	unlocked.Action(func(ctx *Turnstile, message Message) {
+		switch message {
+		case COIN:
+			ctx.Count++
+		case PUSH:
+			if ctx.Count > 0 {
+				ctx.Count--
+			}
+		}
+
+	})
 
 	unlocked.Condition(func(t Turnstile) bool {
 		return t.Count > 0
