@@ -1,27 +1,27 @@
 package automaton
 
-type Automaton struct {
-	state State
+type Automaton[M any] struct {
+	state State[M]
 }
 
-func New(initial State) *Automaton {
-	return &Automaton{
+func New[M any](initial State[M]) *Automaton[M] {
+	return &Automaton[M]{
 		state: initial,
 	}
 }
 
-func (a *Automaton) Forward(event any) {
-	next_state := a.state.Next(event)
+func (a *Automaton[M]) Forward(message M) {
+	next_state := a.state.Next(message)
 	if next_state != nil {
 		a.ChangeState(next_state)
 	}
 }
 
-func (a *Automaton) State() State {
+func (a *Automaton[M]) State() State[M] {
 	return a.state
 }
 
-func (a *Automaton) ChangeState(next State) {
+func (a *Automaton[M]) ChangeState(next State[M]) {
 	a.state.Exit()
 	a.state = next
 	a.state.Enter()

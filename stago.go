@@ -52,7 +52,7 @@ type State[C any, S, M comparable] struct {
 }
 
 func (d *Stago[C, S, M]) AddDecision(state S, decision Decision[C, M]) {
-	decisions, _ := d.decisions[state]
+	decisions := d.decisions[state]
 	d.decisions[state] = append(decisions, decision)
 }
 

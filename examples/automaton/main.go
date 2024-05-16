@@ -17,8 +17,8 @@ type Context struct {
 
 func main() {
 	ctx := Context{Coins: 0}
-	unlocked := automaton.NewStateBuilder(&ctx)
-	locked := automaton.NewStateBuilder(&ctx)
+	unlocked := automaton.NewStateBuilder[any](&ctx)
+	locked := automaton.NewStateBuilder[any](&ctx)
 
 	locked.OnEnter(func(ctx *Context) {
 		log.Println("enter locked")
@@ -31,7 +31,7 @@ func main() {
 	locked_state := locked.Build()
 	unlocked_state := unlocked.Build()
 
-	unlocked.OnNext(func(ctx *Context, event any) automaton.State {
+	unlocked.OnNext(func(ctx *Context, event any) automaton.State[any] {
 		log.Println(ctx, event)
 		switch event {
 		case push:
@@ -47,7 +47,7 @@ func main() {
 		return nil
 	})
 
-	locked.OnNext(func(ctx *Context, event any) automaton.State {
+	locked.OnNext(func(ctx *Context, event any) automaton.State[any] {
 		log.Println(ctx, event)
 		switch event {
 		case push:

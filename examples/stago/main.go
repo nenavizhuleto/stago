@@ -1,8 +1,6 @@
 package main
 
 import (
-	"log"
-
 	"github.com/nenavizhuleto/sadm"
 	"github.com/nenavizhuleto/stago"
 )
