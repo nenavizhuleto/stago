@@ -11,9 +11,9 @@ func New[M any](initial State[M]) *Automaton[M] {
 }
 
 func (a *Automaton[M]) Forward(message M) {
-	next_state := a.state.Next(message)
-	if next_state != nil {
-		a.ChangeState(next_state)
+	nextState := a.state.Next(message)
+	if nextState != nil {
+		a.ChangeState(nextState)
 	}
 }
 

@@ -35,26 +35,26 @@ func NewStateBuilder[M any, S any](ctx S) StateBuilder[S, M] {
 	}
 }
 
-func (sb *state[S, M]) OnEnter(callback OnEnter[S]) StateBuilder[S, M] {
-	sb.onEnter = callback
+func (s *state[S, M]) OnEnter(callback OnEnter[S]) StateBuilder[S, M] {
+	s.onEnter = callback
 
-	return sb
+	return s
 }
 
-func (sb *state[S, M]) OnExit(callback OnExit[S]) StateBuilder[S, M] {
-	sb.onExit = callback
+func (s *state[S, M]) OnExit(callback OnExit[S]) StateBuilder[S, M] {
+	s.onExit = callback
 
-	return sb
+	return s
 }
 
-func (sb *state[S, M]) OnNext(callback OnNext[S, M]) StateBuilder[S, M] {
-	sb.onNext = callback
+func (s *state[S, M]) OnNext(callback OnNext[S, M]) StateBuilder[S, M] {
+	s.onNext = callback
 
-	return sb
+	return s
 }
 
-func (sb *state[S, M]) Build() State[M] {
-	return sb
+func (s *state[S, M]) Build() State[M] {
+	return s
 }
 
 func (s *state[S, M]) Enter() {

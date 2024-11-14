@@ -24,7 +24,7 @@ type Stago[C any, S, M comparable] struct {
 }
 
 func New[C any, S, M comparable](ctx C, state S) *Stago[C, S, M] {
-	s := &Stago[C, S, M]{
+	return &Stago[C, S, M]{
 		context:    ctx,
 		fsm:        fsm.New(state, fsm.TT[S, M]{}),
 		decisions:  make(map[S][]Decision[C, M]),
@@ -32,8 +32,6 @@ func New[C any, S, M comparable](ctx C, state S) *Stago[C, S, M] {
 		actions:    make(map[S]Action[C, M]),
 		fallbacks:  make(map[S]Action[C, M]),
 	}
-
-	return s
 }
 
 type State[C any, S, M comparable] struct {
@@ -113,34 +111,37 @@ func (d *Stago[C, S, M]) Reset(ctx C, state S) {
 
 func (d *Stago[C, S, M]) Forward(message M) bool {
 	var (
-		state                       = d.State()
-		action, action_exists       = d.actions[state]
-		condition, condition_exists = d.conditions[state]
-		decisions, decisions_exists = d.decisions[state]
-		fallback, fallback_exists   = d.fallbacks[state]
+		state                      = d.State()
+		action, actionExists       = d.actions[state]
+		condition, conditionExists = d.conditions[state]
+		decisions, decisionsExists = d.decisions[state]
+		fallback, fallbackExists   = d.fallbacks[state]
 	)
 
-	if action_exists {
+	if actionExists {
 		// Perform actions
 		action(&d.context, message)
 	}
 
-	if decisions_exists {
+	if decisionsExists {
 		// Perform conditional actions
-		decided := false
+		var decided bool
+
 		for _, decision := range decisions {
 			if decision.Condition(d.context) {
 				decision.Action(&d.context, message)
+
 				decided = true
 			}
 		}
-		if fallback_exists && !decided {
+
+		if fallbackExists && !decided {
 			// if neither decisions are made, perform fallback
 			fallback(&d.context, message)
 		}
 	}
 
-	if condition_exists {
+	if conditionExists {
 		// Check if condition is true else abort transition
 		if !condition(d.context) {
 			return false
