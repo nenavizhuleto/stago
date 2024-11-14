@@ -21,10 +21,6 @@ type Stago[C any, S, M comparable] struct {
 	conditions map[S]Condition[C]
 	actions    map[S]Action[C, M]
 	fallbacks  map[S]Action[C, M]
-
-	// Helpers
-	ALWAYS Condition[C]
-	NEVER  Condition[C]
 }
 
 func New[C any, S, M comparable](ctx C, state S) *Stago[C, S, M] {
@@ -35,20 +31,39 @@ func New[C any, S, M comparable](ctx C, state S) *Stago[C, S, M] {
 		conditions: make(map[S]Condition[C]),
 		actions:    make(map[S]Action[C, M]),
 		fallbacks:  make(map[S]Action[C, M]),
-
-		ALWAYS: func(_ C) bool { return true },
-		NEVER:  func(_ C) bool { return false },
 	}
 
 	return s
 }
 
 type State[C any, S, M comparable] struct {
-	Transition func(message M, next S)
-	Condition  func(condition Condition[C])
-	Decision   func(cond Condition[C], action Action[C, M])
-	Action     func(action Action[C, M])
-	Fallback   func(action Action[C, M])
+	v S
+	s *Stago[C, S, M]
+}
+
+func (s State[C, S, M]) Transition(message M, next S) {
+	s.s.fsm.Table().AddTransition(s.v, message, next)
+}
+
+func (s State[C, S, M]) Condition(condition Condition[C]) {
+	s.s.AddCondition(s.v, condition)
+}
+
+func (s State[C, S, M]) Decision(condition Condition[C], action Action[C, M]) {
+	decision := Decision[C, M]{
+		Condition: condition,
+		Action:    action,
+	}
+
+	s.s.AddDecision(s.v, decision)
+}
+
+func (s State[C, S, M]) Action(action Action[C, M]) {
+	s.s.AddAction(s.v, action)
+}
+
+func (s State[C, S, M]) Fallback(fallback Action[C, M]) {
+	s.s.AddFallback(s.v, fallback)
 }
 
 func (d *Stago[C, S, M]) AddDecision(state S, decision Decision[C, M]) {
@@ -70,28 +85,8 @@ func (d *Stago[C, S, M]) AddCondition(state S, condition Condition[C]) {
 
 func (d *Stago[C, S, M]) NewState(state S) State[C, S, M] {
 	return State[C, S, M]{
-		Transition: func(message M, next S) {
-			d.fsm.Table().AddTransition(state, message, next)
-		},
-		Condition: func(condition Condition[C]) {
-			d.AddCondition(state, condition)
-		},
-		Decision: func(condition Condition[C], action Action[C, M]) {
-			decision := Decision[C, M]{
-				Condition: condition,
-				Action:    action,
-			}
-
-			d.AddDecision(state, decision)
-		},
-
-		Action: func(action Action[C, M]) {
-			d.AddAction(state, action)
-		},
-
-		Fallback: func(fallback Action[C, M]) {
-			d.AddFallback(state, fallback)
-		},
+		v: state,
+		s: d,
 	}
 }
 
@@ -101,6 +96,19 @@ func (d *Stago[C, S, M]) State() S {
 
 func (d *Stago[C, S, M]) Context() C {
 	return d.context
+}
+
+func (d *Stago[C, S, M]) ResetContext(ctx C) {
+	d.context = ctx
+}
+
+func (d *Stago[C, S, M]) ResetState(state S) {
+	d.fsm.Reset(state)
+}
+
+func (d *Stago[C, S, M]) Reset(ctx C, state S) {
+	d.ResetContext(ctx)
+	d.ResetState(state)
 }
 
 func (d *Stago[C, S, M]) Forward(message M) bool {
@@ -134,7 +142,7 @@ func (d *Stago[C, S, M]) Forward(message M) bool {
 
 	if condition_exists {
 		// Check if condition is true else abort transition
-		if condition(d.context) {
+		if !condition(d.context) {
 			return false
 		}
 	}

@@ -7,15 +7,17 @@ type State[M any] interface {
 }
 
 type state[S any, M any] struct {
-	context  S
-	on_enter OnEnter[S]
-	on_exit  OnExit[S]
-	on_next  OnNext[S, M]
+	context S
+	onEnter OnEnter[S]
+	onExit  OnExit[S]
+	onNext  OnNext[S, M]
 }
 
-type OnEnter[C any] func(ctx C)
-type OnExit[C any] func(ctx C)
-type OnNext[C any, M any] func(ctx C, event M) State[M]
+type (
+	OnEnter[C any]       func(ctx C)
+	OnExit[C any]        func(ctx C)
+	OnNext[C any, M any] func(ctx C, event M) State[M]
+)
 
 type StateBuilder[S any, M any] interface {
 	OnEnter(OnEnter[S]) StateBuilder[S, M]
@@ -26,25 +28,28 @@ type StateBuilder[S any, M any] interface {
 
 func NewStateBuilder[M any, S any](ctx S) StateBuilder[S, M] {
 	return &state[S, M]{
-		context:  ctx,
-		on_enter: nil,
-		on_exit:  nil,
-		on_next:  nil,
+		context: ctx,
+		onEnter: nil,
+		onExit:  nil,
+		onNext:  nil,
 	}
 }
 
 func (sb *state[S, M]) OnEnter(callback OnEnter[S]) StateBuilder[S, M] {
-	sb.on_enter = callback
+	sb.onEnter = callback
+
 	return sb
 }
 
 func (sb *state[S, M]) OnExit(callback OnExit[S]) StateBuilder[S, M] {
-	sb.on_exit = callback
+	sb.onExit = callback
+
 	return sb
 }
 
 func (sb *state[S, M]) OnNext(callback OnNext[S, M]) StateBuilder[S, M] {
-	sb.on_next = callback
+	sb.onNext = callback
+
 	return sb
 }
 
@@ -53,20 +58,21 @@ func (sb *state[S, M]) Build() State[M] {
 }
 
 func (s *state[S, M]) Enter() {
-	if s.on_enter != nil {
-		s.on_enter(s.context)
+	if s.onEnter != nil {
+		s.onEnter(s.context)
 	}
 }
 
 func (s *state[S, M]) Exit() {
-	if s.on_exit != nil {
-		s.on_exit(s.context)
+	if s.onExit != nil {
+		s.onExit(s.context)
 	}
 }
 
 func (s *state[S, M]) Next(event M) State[M] {
-	if s.on_next != nil {
-		return s.on_next(s.context, event)
+	if s.onNext != nil {
+		return s.onNext(s.context, event)
 	}
+
 	return nil
 }

@@ -11,13 +11,14 @@ func (tt TT[S, M]) AddTransition(s S, m M, ns S) {
 	if _, ok := tt[s]; !ok {
 		tt.InitState(s)
 	}
+
 	tt[s][m] = ns
 }
 
 // Transition Row.
 type TR[S, M comparable] map[M]S
 
-// Finite-state machine
+// Finite-state machine.
 //
 //	S - State
 //	M - Message
@@ -26,7 +27,7 @@ type FSM[S, M comparable] struct {
 	table TT[S, M]
 }
 
-// New allocates FSM
+// New allocates FSM.
 func New[S, M comparable](init S, table TT[S, M]) *FSM[S, M] {
 	return &FSM[S, M]{
 		state: init,
